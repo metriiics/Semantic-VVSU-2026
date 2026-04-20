@@ -1,2 +1,3 @@
 venv/
 llmPlanner/local/__pycache__
+llmPlanner/remote/__pycache__
