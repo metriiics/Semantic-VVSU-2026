@@ -32,7 +32,7 @@ def addTask(title: str, date: str, deadline: str,
     # Проверка на существование записи
     cursor.execute(
         "select * from tasks where title = ?",
-        (title.strip())
+        (title.strip(), )
     )
     existing = cursor.fetchone()
 
