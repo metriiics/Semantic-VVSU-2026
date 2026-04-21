@@ -6,6 +6,8 @@ import uvicorn
 from agent import agent
 from db import ini_db
 
+chat_history = []
+
 class GenerateRequest(BaseModel):
     quest: str
 
@@ -42,9 +44,25 @@ async def healthCheck():
 @app.post("/generate", response_model=GenerateResponse)
 async def generate(request: GenerateRequest):
     """ Возвращает ответ модели """
+    global chat_history
 
-    response = agent.invoke({"messages": [("user", request.quest)]})
-    return GenerateResponse(resp=response["messages"][-1].content)
+    messages = []
+
+    for msg in chat_history[-6:]:
+        messages.append(msg)
+
+    messages.append(("user", request.quest))
+
+    response = agent.invoke({"messages": messages})
+    answer = response["messages"][-1].content
+
+    chat_history.append(("user", request.quest))
+    chat_history.append(("assistant", answer))
+
+    if len(chat_history) > 10:
+        chat_history = chat_history[-10:]
+
+    return GenerateResponse(resp=answer)
 
 if __name__ == "__main__":
     uvicorn.run(
