@@ -1,10 +1,13 @@
 import sys
 import os
 from pydantic import BaseModel, Field
+from typing import List
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain.agents.structured_output import ToolStrategy
+from datebase.scheme import Tasks
 load_dotenv()
 
 llm = ChatGroq(
@@ -12,6 +15,14 @@ llm = ChatGroq(
     temperature=0,
     api_key=os.getenv('GROQ_API_KEY')
 )
+
+class ResponseFrom(BaseModel):
+    messages: str = Field(
+        description="Ответ модели"
+    )
+    tools: List = Field(
+        description="Список инстрементов использованных"
+    )
 
 async def ask_agent(question):
     client = MultiServerMCPClient(
@@ -27,6 +38,7 @@ async def ask_agent(question):
     agent = create_agent(
         model=llm, 
         tools=tools,
+        response_format=ToolStrategy(ResponseFrom),
         system_prompt="""
         Ты AI-ассистент для планирования задач и активностей.
         
@@ -36,6 +48,3 @@ async def ask_agent(question):
     )
     result = await agent.ainvoke({"input": question})
     return result["messages"][-1].content
-
-class ResponseFrom():
-    pass

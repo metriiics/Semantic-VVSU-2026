@@ -1,15 +1,21 @@
 from mcp.server.fastmcp import FastMCP
-from datebase.crud import add_task
+from datebase.crud import DBaseQuery
 
 ## три сущности: prompt, resource, tools
 
 mcp = FastMCP('Demo')
 
+# @mcp.tool()
+# def tool_create_task(name, dateinsert, datefinish, status):
+#    """ create task in bd """
+#    DBaseQuery.create_task(name, dateinsert, datefinish, status)
+#    return "Ok!"
+
 @mcp.tool()
-def tool_add_task(name, dateinsert, datefinish, status):
-    """ add task in bd """
-    add_task(name, dateinsert, datefinish, status)
-    return "Ok!"
+def tool_read_task():
+    """ read task in bd """
+    tasks = DBaseQuery.read_task()
+    return tasks
 
 #@mcp.resource()
 #def func():
