@@ -24,7 +24,14 @@ class DBaseQuery:
         """ Возвращает все таски """
         with sessio_factory() as session:
             tasks = session.query(Tasks).all() 
-            return tasks
+            return [
+                {
+                    "id": task.id,
+                    "name": task.name,
+                    "status": task.status
+                }
+                for task in tasks
+            ]
 
     @staticmethod
     def read_task_id(task_id: id):

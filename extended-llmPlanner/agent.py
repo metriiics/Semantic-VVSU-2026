@@ -1,50 +1,68 @@
 import sys
 import os
+import asyncio
 from pydantic import BaseModel, Field
-from typing import List
 from dotenv import load_dotenv
+from typing import Any
 from langchain_groq import ChatGroq
 from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain.agents.structured_output import ToolStrategy
-from datebase.scheme import Tasks
+from skills import detect_skills, build_system_prompt
 load_dotenv()
 
 llm = ChatGroq(
-    model='llama-3.1-8b-instant', 
+    model='llama-3.3-70b-versatile', 
     temperature=0,
     api_key=os.getenv('GROQ_API_KEY')
 )
 
-class ResponseFrom(BaseModel):
-    messages: str = Field(
-        description="Ответ модели"
-    )
-    tools: List = Field(
-        description="Список инстрементов использованных"
+class AgentResponse(BaseModel):
+    action: str
+    success: bool
+    message: str
+    data: dict[str, Any] | None = None
+
+client = MultiServerMCPClient(
+    {
+        "planner": {
+            "command":sys.executable,
+            "args": ["server.py"],
+            "transport": "stdio"
+        }
+    }
+)
+
+form_llm = llm.with_structured_output(
+    AgentResponse
+)
+
+tools = asyncio.run(client.get_tools())
+agent = create_agent(
+    model=llm, 
+    tools=tools,
+)
+
+def ask_agent(question):
+    active_skills = detect_skills(question)
+    system_prompt = build_system_prompt(active_skills)
+
+    result = asyncio.run(
+        agent.ainvoke(
+            {
+                "messages": [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=question)
+                ]
+            }
+        )
     )
 
-async def ask_agent(question):
-    client = MultiServerMCPClient(
-        {
-            "planner": {
-                "command":sys.executable,
-                "args": ["APP-MCP.py"],
-                "transport": "stdio"
-            }
-        }    
-    )
-    tools = await client.get_tools()
-    agent = create_agent(
-        model=llm, 
-        tools=tools,
-        response_format=ToolStrategy(ResponseFrom),
-        system_prompt="""
-        Ты AI-ассистент для планирования задач и активностей.
-        
-        1. Для добавления задач используй tools
-        2. После вызова инструмента дай финальный ответ
+    raw = result["messages"][-1].content
+    structed = form_llm.invoke(
+        f"""
+            Преобразуй ответ ассистента в структуру
+            Ответ: {raw}
         """
     )
-    result = await agent.ainvoke({"input": question})
-    return result["messages"][-1].content
+    return structed
