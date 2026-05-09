@@ -5,11 +5,13 @@ from typing import List
 from agent.serialize import AgentResponse
 from agent.skills import detect_skills, build_system_prompt
 from database.memory import memory
+from agent.subagent import subAgent, SYSTEM_PROMPT_SUBAGENT, get_curr_weather
 
 from langchain_groq import ChatGroq
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from deepagents.middleware.subagents import SubAgentMiddleware
 
 load_dotenv()
 
@@ -38,7 +40,22 @@ async def ask_agent(question) -> AgentResponse:
         model=llm, 
         tools=tools,
         response_format=AgentResponse,
-        checkpointer=memory.checkpointer
+        checkpointer=memory.checkpointer,
+        middleware=[
+            SubAgentMiddleware(
+                backend=llm,
+                subagents=[
+                    {
+                        "name": "weather",
+                        "description": "This subagents can get and analisys weather in cities",
+                        "system_prompt": SYSTEM_PROMPT_SUBAGENT,
+                        "tools": [get_curr_weather],
+                        "model": subAgent,
+                        "middleware": [],
+                    }
+                ]
+            )
+        ]
     )
 
     result = await agent.ainvoke(
