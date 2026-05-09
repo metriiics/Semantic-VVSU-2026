@@ -117,8 +117,20 @@ def tool_delete_task(task_id):
     """
     return DBaseQuery.delete_task(task_id)
 
-@mcp.resource("resource://current_date")
-def curr_date() -> Dict[str, str]:
+@mcp.tool()
+def tool_curr_date() -> Dict[str, str]:
+    """
+        Retrieve the current local date and time information.
+
+        This tool is the single source of truth for all date and time operations
+        inside the agent system. The agent must use this tool whenever it needs
+        to interpret relative dates such as:
+        - today
+        - tomorrow
+        - next Monday
+        - in a week
+        - this evening
+    """
     now = datetime.now()
 
     week_days_ru = ['понедельник', 'вторник', 'среда', 'четверг', 
@@ -137,6 +149,13 @@ def curr_date() -> Dict[str, str]:
     }
 
     return formular
+
+@mcp.resource("resource://timezone")
+def timezone():
+    tz = datetime.now().astimezone().tzinfo
+    return {
+        "timezone": str(tz)
+    }
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

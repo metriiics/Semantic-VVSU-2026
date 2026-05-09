@@ -8,18 +8,46 @@ from database.memory import memory
 from agent.subagent import subAgent, SYSTEM_PROMPT_SUBAGENT, get_curr_weather
 
 from langchain_groq import ChatGroq
-from langchain.agents import create_agent
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain.agents import create_agent, AgentState
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from deepagents.middleware.subagents import SubAgentMiddleware
+from langchain_core.messages import trim_messages
+from langchain.agents.middleware import before_model
+from langchain_core.runnables import RunnableConfig
+from langgraph.runtime import Runtime
+from langchain.messages import RemoveMessage
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
 
 load_dotenv()
 
 llm = ChatGroq(
-    model='llama-3.3-70b-versatile', 
+    model='qwen/qwen3-32b', 
     temperature=0,
     api_key=os.getenv('GROQ_API_KEY')
 )
+
+structed_llm = llm.with_structured_output(AgentResponse)
+
+@before_model
+def trim_history(state: AgentState, runtime: Runtime):
+    messages = state["messages"]
+
+    trimmed = trim_messages(
+        messages,
+        strategy="last",
+        token_counter=llm,
+        max_tokens=2500,
+        include_system=True,
+        allow_partial=False
+    )
+
+    return {
+        "messages": [
+            RemoveMessage(id=REMOVE_ALL_MESSAGES),
+            *trimmed
+        ]
+    }
 
 async def ask_agent(question) -> AgentResponse:
     active_skills: List[str] = detect_skills(question)
@@ -39,9 +67,9 @@ async def ask_agent(question) -> AgentResponse:
     agent = create_agent(
         model=llm, 
         tools=tools,
-        response_format=AgentResponse,
         checkpointer=memory.checkpointer,
         middleware=[
+            trim_history,
             SubAgentMiddleware(
                 backend=llm,
                 subagents=[
@@ -54,7 +82,7 @@ async def ask_agent(question) -> AgentResponse:
                         "middleware": [],
                     }
                 ]
-            )
+            )   
         ]
     )
 
@@ -67,9 +95,17 @@ async def ask_agent(question) -> AgentResponse:
         },
         config={
             "configurable": {
-                "thread_id": "user_123"
+                "thread_id": "user_212313245"
             }
         }
     )
-    resp = result["structured_response"]
-    return resp
+
+    final_ai_message = next(
+        msg
+        for msg in reversed(result["messages"])
+        if isinstance(msg, AIMessage)
+    )
+
+    final_text = final_ai_message.content
+    parsed_response = await structed_llm.ainvoke(final_text)
+    return parsed_response

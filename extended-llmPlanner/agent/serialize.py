@@ -26,5 +26,5 @@ class AgentResponse(BaseModel):
     )
     skills: List[str] = Field(
         default=None,
-        description="Skills that the assistant used to respond to the user's request from the set of available skills."
+        description="Skills that the assistant used to respond to the user's request from the set of available skills: [weather, task manager, date]"
     )
