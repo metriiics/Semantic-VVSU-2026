@@ -29,7 +29,7 @@ Main Agent (LangGraph)
 ```
 
 # Основные артефакты и технологии
-*MCP*
+*MCP* \
 Что реализовано:
 - MCP server 
 - MCP tool 
@@ -37,52 +37,52 @@ Main Agent (LangGraph)
 - stdio transport
 - tool orchestration через MCP client
 
-*LangGraph*
+*LangGraph* \
 Что реализовано:
 - state management
 - message trimming
 - persistence
 - middleware execution
 
-*LangChain Agents*
+*LangChain Agents* \
 Используется для:
 - tool calling
 - orchestration
 - structured output
 
-*Weather SubAgent*
+*Weather SubAgent* \
 Специализированный агент для:
 - weather analysis
 - activity recommendations
 - forecast interpretation
 
-*Skill Detection*
+*Skill Detection* \
 RapidFuzz: Mini-NLP-router для определения активных skills
 Algo:
 - Разбивает строки на токены
 - Нормализует
 - Ищет пересечение token sets(similarity)
 
-*PostgreSQL*
+*PostgreSQL* \
 Используется для:
 - task storage
 - agent memory
 - checkpoint persistence
 
-*SQLAlchemy ORM*
+*SQLAlchemy ORM* \
 Реализовано:
 - declarative models
 - CRUD abstraction
 - session factory
 - transactional operations
 
-*LangGraph Checkpoint Memory*
+*LangGraph Checkpoint Memory* \
 Возможности:
 - persistent conversations
 - thread state recovery
 - long-term execution memory
 
-*Message History Management*
+*Message History Management* \
 Используется:
 - control context window
 - prevent token overflow
